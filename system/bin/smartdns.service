@@ -1,0 +1,59 @@
+#!/bin/sh
+
+#
+# service init
+# 
+MODDIR=/data/adb/modules/SmartDNS
+ENVPATH=/dev/var
+SMARTDNS=$MODDIR/system/bin/smartdns
+CONFIG=$MODDIR/system/etc/smartdns/smartdns.conf
+PIDFILE=$ENVPATH/run/smartdns.pid
+LOG=$ENVPATH/log/smartdns.log
+
+case $1 in
+start)
+$SMARTDNS -c $CONFIG -p $PIDFILE
+sleep 1
+sh "$0" status
+;;
+
+stop)
+if [ ! -f "$PIDFILE" ]; then
+echo "smartdns server is not pid"
+exit 0
+fi
+PID="$(cat $PIDFILE 2>/dev/null)"
+if [ ! -e "/proc/$PID" ] || [ -z "$PID" ]; then
+echo "smartdns server is stopped"
+exit 0
+fi
+kill -TERM "$PID"
+sleep 1
+if [ $? -ne 0 ]; then
+echo "Stop smartdns server failed"
+exit 1;
+fi
+rm -f "$PIDFILE"
+echo "Stop smartdns server success"
+;;
+
+restart)
+sh "$0" stop && sleep 1 && sh "$0" start
+;;
+
+status)
+PID="$(cat "$PIDFILE" 2>/dev/null)"
+if [ ! -e "/proc/$PID" ] || [ -z "$PID" ]; then
+echo "smartdns server is not running"
+exit 1
+fi
+echo "smartdns server is running" 
+status=$?
+;;
+
+*)
+echo "Usage: $0 {start|stop|restart|status}" >> $LOG
+exit 2
+;;
+esac
+exit $status

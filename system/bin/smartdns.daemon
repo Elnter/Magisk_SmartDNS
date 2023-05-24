@@ -1,0 +1,25 @@
+#!/bin/sh
+
+ENVPATH=/dev/var
+BIN=$MODDIR/system/bin
+LOG=$ENVPATH/log/smartdns.log
+
+echo "start smartdns daemon" > $LOG
+
+echo "1" > /proc/sys/net/ipv4/conf/all/forwarding
+echo "1" > /proc/sys/net/ipv6/conf/all/forwarding
+
+iptables -t nat -A PREROUTING -p udp --dport 53 -j REDIRECT --to-port 653 >> $LOG
+iptables -t nat -A PREROUTING -p tcp --dport 53 -j REDIRECT --to-port 653 >> $LOG
+iptables -t nat -nL --line >> $LOG
+
+setprop net.dns1 ::1 >> $LOG
+setprop net.dns2 127.0.0.1 >> $LOG
+
+while true; do
+  sh $BIN/smartdns.service restart >> $LOG
+  getprop | grep dns >> $LOG
+  $BIN/busybox nslookup bing.com >> $LOG
+  sleep 900
+  echo "start smartdns daemon" > $LOG
+done 
